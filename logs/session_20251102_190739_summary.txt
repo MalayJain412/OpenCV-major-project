@@ -1,0 +1,13 @@
+EXERCISE SESSION SUMMARY
+==================================================
+Session ID: 20251102_190739
+Start Time: 2025-11-02 19:07:39
+Duration: 0:00:40.430999
+Total Participants: 1
+Total Repetitions: 1
+
+INDIVIDUAL PERFORMANCE:
+------------------------------
+Person 0: 1 reps
+
+Detailed log: session_20251102_190739.csv

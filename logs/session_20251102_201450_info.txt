@@ -1,0 +1,24 @@
+Session Start: 2025-11-02T20:14:50.593665
+Session ID: 20251102_201450
+==================================================
+Configuration:
+  camera_index: 0
+  flip_frame: True
+  pose_model_complexity: 1
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  log_directory: logs
+  show_pose_landmarks: True
+  squat_config: {'upright_threshold': 160.0, 'squat_threshold': 100.0, 'good_depth_min': 90.0, 'good_depth_max': 110.0, 'smoothing_window': 5, 'min_state_duration': 3}
+==================================================
+Session Log:
+Session End: 2025-11-02T20:15:35.512343
+Duration: 0:00:44.918678
+Total Reps: 3
+Participants: 1
+Average Reps per Person: 3.0
+Session End: 2025-11-02T20:15:39.984498
+Duration: 0:00:49.390833
+Total Reps: 3
+Participants: 1
+Average Reps per Person: 3.0

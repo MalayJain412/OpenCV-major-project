@@ -1,0 +1,61 @@
+References
+
+Boyalla, N.K.R., "Real-time Exercise PostureCorrection UsingHuman Pose DetectionTechnique," 2021, soar.suny.edu.
+Boldo, M. et al., "Real-timemulti-camera 3Dhuman pose estimationat the edge for industrial applications," ExpertSystemswith …, 2024.
+Mehta, D. et al., "Vnect:Real-time3dhuman pose estimationwith a single rgb camera," Acm transactions on …, 2017.
+Yuan, S., Journal, L.Z.A.E., and 2025, "GTA-Net: An IoT-integrated 3Dhuman pose estimation systemforreal-timeadolescent sportsposturecorrection," Alexandria Engineering Journal, 2025.
+Stenum, J. et al., "Applications ofpose estimationinhumanhealth and performance across the lifespan," Allen, CO Pyles,RD Reetzke….
+Woo, Y., Access, H.J.I., and 2025, "Exercise AssessmentBased onHuman Pose Estimationand Relative Phase forReal-TimeRemoteExercise System," IEEE Access, 2025.
+Nadeem, A. et al., "Automatichuman posture estimationfor sport activity recognition with robustbodypartsdetectionand entropy markov model," Multimedia Tools and Applications, 2021.
+Hannan, A. et al., "A portable smartfitnesssuite forreal-time exercise monitoringandposturecorrection," Sensors, 2021.
+Ram, B. et al., "Real-time exercise assessment: MediaPipe & OpenCV approach," Computer Science …, 2024.
+Jadhav, M., and Liyakat, K., "Smart Cameras Integrated with Artificial Intelligence (AI) andHuman Pose Estimation: A Study," researchgate.net, n.d..
+Cormier, M. et al., "Where are we withhuman pose estimationin real-worldsurveillance?," Proceedings of the …, 2022.
+Cormier, M. et al., "Interactivelabeling forhuman pose estimationinsurveillancevideos," proceedings of the …, 2021.
+Holte, M. et al., "Human pose estimationand activity recognition from multi-view videos: Comparative explorations of recent developments," IEEE Journal of …, 2012.
+Wu, C., IEEE, H.A.P.o.t., and 2008, "Real-time human pose estimation: A case study in algorithm design for smart camera networks," Proceedings of the IEEE, 2008.
+Totlani, K. et al., "Real-Time Human Pose EstimationUsing Media-Pipe an Artificial Intelligence Applications in Health andFitness," 2024 4th …, 2024.
+Sameen, S., …, K.C.-.….o.E.T.i.E.&., and 2025, "Real Time Pose DetectionUsing Computer Vision," … on Emerging Trends in Engineering & …, 2025.
+Zou, J. et al., "Intelligentfitnesstrainersystembased onhuman pose estimation," International conference on …, 2018.
+Lohi, S. et al., "RealtimePose Estimationusing AI," JOURNAL OF …, researchgate.net.
+Palermo, M. et al., "Real-time human pose estimationon a smart walker using convolutional neural networks," ExpertSystemswith …, 2021. Kaushik, M. et al., "AI-BasedPostureCorrection,Real-Time ExerciseTracking and Feedback usingPose EstimationTechnique," … IntelligentSystems…, 2024.
+
+Boyalla, N. K. R. (2021). Real-time Exercise Posture Correction Using Human Pose Detection Technique. SOAR @ SUNY
+
+Boldo, M., De Marchi, M., Martini, E., Aldegheri, S., et al. (2024). Real-time multi-camera 3D human pose estimation at the edge for industrial applications. Expert Systems with Applications, Elsevier. Link
+
+Mehta, D., Sridhar, S., Sotnychenko, O., Rhodin, H., et al. (2017). Vnect: Real-time 3D human pose estimation with a single RGB camera. ACM Transactions on Graphics. Link
+
+Yuan, S., & Zhou, L. (2025). GTA-Net: An IoT-integrated 3D human pose estimation system for real-time adolescent sports posture correction. Alexandria Engineering Journal, Elsevier. Link
+
+Stenum, J., Cherry-Allen, K. M., Pyles, C. O., Reetzke, R. D., et al. (2021). Applications of pose estimation in human health and performance across the lifespan. Sensors, MDPI. Link
+
+Woo, Y., & Jeong, H. (2025). Exercise Assessment Based on Human Pose Estimation and Relative Phase for Real-Time Remote Exercise System. IEEE Access. Link
+
+Nadeem, A., Jalal, A., & Kim, K. (2021). Automatic human posture estimation for sport activity recognition with robust body parts detection and entropy Markov model. Multimedia Tools and Applications, Springer. Link
+
+Hannan, A., Shafiq, M. Z., Hussain, F., & Pires, I. M. (2021). A portable smart fitness suite for real-time exercise monitoring and posture correction. Sensors, MDPI. Link
+
+Ram, B. G., Murgod, T. R., Chandan, H., et al. (2024). Real-time exercise assessment: MediaPipe & OpenCV approach. Computer Science Advances, Taylor & Francis. Link
+
+Jadhav, M. S., & Liyakat, K. K. S. (2024). Smart Cameras Integrated with Artificial Intelligence (AI) and Human Pose Estimation: A Study. ResearchGate. Link
+
+Cormier, M., Clepe, A., Specker, A., & Beyerer, J. (2022). Where are we with human pose estimation in real-world surveillance? Proceedings of the IEEE/CVF WACV Workshops. Link
+
+Cormier, M., Röpke, F., Golda, T., & Beyerer, J. (2021). Interactive labeling for human pose estimation in surveillance videos. Proceedings of the IEEE/CVF ICCV Workshops. Link
+
+Holte, M. B., Tran, C., & Trivedi, M. M. (2012). Human pose estimation and activity recognition from multi-view videos: Comparative explorations of recent developments. IEEE Journal of Selected Topics in Signal Processing. Link
+
+Wu, C., & Aghajan, H. (2008). Real-time human pose estimation: A case study in algorithm design for smart camera networks. Proceedings of the IEEE. Link
+
+Totlani, K., Dhavala, S. S., & Vijayarao, S. S. K. (2024). Real-Time Human Pose Estimation Using MediaPipe and Artificial Intelligence Applications in Health and Fitness. IEEE Conference Proceedings. Link
+
+Sameen, S., & Chinnaiah, K. (2025). Real-Time Pose Detection Using Computer Vision. Proceedings on Emerging Trends in Engineering & Technology, IEEE. Link
+
+Zou, J., Li, B., Wang, L., Li, Y., Li, X., Lei, R., & Sun, S. (2018). Intelligent fitness trainer system based on human pose estimation. International Conference on Intelligent Systems, Springer. Link
+
+Lohi, S. A., Katwate, S. S., Ladole, O. M., Kusumbe, I. D., et al. (2024). Realtime Pose Estimation using AI. Journal of Engineering Education and Research, ResearchGate. Link
+
+Palermo, M., Moccia, S., Migliorelli, L., & Frontoni, E. (2021). Real-time human pose estimation on a smart walker using convolutional neural networks. Expert Systems with Applications, Elsevier. Link
+
+Kaushik, M., Kandala, M., & Vignesh, G. S. (2024). AI-Based Posture Correction, Real-Time Exercise Tracking and Feedback using Pose Estimation Technique. IEEE International Conference on Intelligent Systems. Link

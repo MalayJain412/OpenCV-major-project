@@ -1,0 +1,10 @@
+Session End: 2025-11-02T20:24:17.549605
+Duration: 0:00:00.003515
+Total Reps: 5
+Participants: 1
+Average Reps per Person: 5.0
+Session End: 2025-11-02T20:24:27.978415
+Duration: 0:00:10.432325
+Total Reps: 5
+Participants: 0
+Average Reps per Person: 0.0

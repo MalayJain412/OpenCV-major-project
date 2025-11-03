@@ -1,0 +1,6 @@
+Timestamp,Alert Type,Person ID,Coordinates,Confidence,Description,Session ID,Resolved
+2025-11-02 20:54:27,person_detected,1,"320,240",0.85,New person detected,default,False
+2025-11-02 20:54:28,restricted_zone_entry,1,"150,100",0.85,Person entered restricted area,default,False
+2025-11-02 20:54:30,rapid_movement,1,"400,300",0.85,Rapid movement detected,default,False
+2025-11-02 20:54:31,fall_detected,1,"350,400",0.85,Possible fall detected,default,False
+2025-11-02 20:54:33,loitering,1,"200,200",0.85,Loitering behavior detected,default,False

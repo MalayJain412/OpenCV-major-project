@@ -1,0 +1,59 @@
+{
+  "zones": [
+    {
+      "zone_id": 1,
+      "name": "Restricted Area 1",
+      "points": [
+        [50, 50],
+        [200, 50],
+        [200, 150],
+        [50, 150]
+      ],
+      "alert_type": "restricted_zone_entry",
+      "enabled": true,
+      "description": "Top-left corner restricted zone"
+    },
+    {
+      "zone_id": 2,
+      "name": "Main Entrance",
+      "points": [
+        [300, 400],
+        [500, 400],
+        [500, 480],
+        [300, 480]
+      ],
+      "alert_type": "person_detected",
+      "enabled": true,
+      "description": "Main entrance monitoring zone"
+    },
+    {
+      "zone_id": 3,
+      "name": "Emergency Exit",
+      "points": [
+        [0, 200],
+        [100, 200],
+        [100, 300],
+        [0, 300]
+      ],
+      "alert_type": "restricted_zone_entry",
+      "enabled": false,
+      "description": "Emergency exit monitoring (disabled by default)"
+    }
+  ],
+  "settings": {
+    "default_alert_cooldown": 5,
+    "zone_violation_timeout": 30,
+    "enable_zone_overlay": true,
+    "zone_colors": {
+      "restricted": [255, 0, 0],
+      "monitoring": [0, 255, 255],
+      "safe": [0, 255, 0]
+    }
+  },
+  "metadata": {
+    "created_date": "2025-11-02",
+    "version": "1.0",
+    "camera_resolution": [640, 480],
+    "notes": "Default zone configuration for VisionTrack surveillance system"
+  }
+}
