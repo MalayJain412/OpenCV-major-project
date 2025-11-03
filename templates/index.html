@@ -1,554 +1,570 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VisionTrack - Real-Time Human Pose Estimation</title>
+    <title>VisionTrack - Advanced Computer Vision Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .video-container {
-            position: relative;
-            max-width: 100%;
-            background: #000;
-        }
-        .video-feed {
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-        }
-        .mode-active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .exercise-active {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-        }
-        .coming-soon {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-            color: #8b4513;
-        }
-    </style>
+    <link rel="stylesheet" href="../static/css/style.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Progress Bar -->
+    <div class="step-progress fixed top-0 left-0 right-0 z-50">
+        <div class="step-progress-bar" id="progress-bar" style="width: 25%;"></div>
+    </div>
+
     <!-- Header -->
-    <header class="bg-white shadow-lg border-b-4 border-indigo-500">
-        <div class="container mx-auto px-4 py-4">
+    <header class="bg-white shadow-sm border-b border-gray-200 pt-1">
+        <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-eye text-3xl text-indigo-600"></i>
-                    <h1 class="text-3xl font-bold text-gray-800">VisionTrack</h1>
-                    <span class="text-sm text-gray-500 bg-gray-200 px-2 py-1 rounded">Real-Time Pose Estimation</span>
+                <div class="flex items-center space-x-4">
+                    <div class="gradient-bg p-2 rounded-lg">
+                        <i class="fas fa-eye text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">VisionTrack</h1>
+                        <p class="text-sm text-gray-600">Advanced Computer Vision Platform</p>
+                    </div>
                 </div>
+
+                <!-- Step Indicators -->
+                <div class="hidden md:flex items-center space-x-3">
+                    <div class="flex items-center space-x-2">
+                        <div id="step-1"
+                            class="step-indicator step-active w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                            1</div>
+                        <span class="text-sm text-gray-600">Overview</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step-2"
+                            class="step-indicator step-upcoming w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                            2</div>
+                        <span class="text-sm text-gray-600">Mode</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step-3"
+                            class="step-indicator step-upcoming w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                            3</div>
+                        <span class="text-sm text-gray-600">Service</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="step-4"
+                            class="step-indicator step-upcoming w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                            4</div>
+                        <span class="text-sm text-gray-600">Demo</span>
+                    </div>
+                </div>
+
                 <div class="flex items-center space-x-4">
                     <span id="status-indicator" class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                        <span class="text-sm text-gray-600">Disconnected</span>
+                        <div class="w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-600">Offline</span>
                     </span>
                 </div>
             </div>
         </div>
     </header>
 
-    <div class="container mx-auto px-4 py-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Main Video Feed Section -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-semibold text-gray-800">
-                            <i class="fas fa-video mr-2"></i>Live Feed
-                        </h2>
-                        <div class="flex space-x-2">
-                            <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas fa-play mr-1"></i>Start
-                            </button>
-                            <button id="stop-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas fa-stop mr-1"></i>Stop
-                            </button>
-                            <button id="reset-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas fa-refresh mr-1"></i>Reset
-                            </button>
-                            <button id="save-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas fa-save mr-1"></i>Save
-                            </button>
-                            <button id="audio-toggle-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas fa-volume-up mr-1"></i><span id="audio-status">Audio</span>
-                            </button>
-                        </div>
+    <!-- Main Content Container -->
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full min-h-[calc(100vh-120px)] flex flex-col">
+
+        <!-- Step 1: Landing Page -->
+        <div id="step-landing" class="step-content fade-in mt-10">
+            <div
+                class="min-h-[calc(100vh-120px)] flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8 py-4 lg:py-0">
+                <!-- Left Content -->
+                <div class="flex-1 space-y-6 lg:space-y-8">
+                    <div class="space-y-4 lg:space-y-6">
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-800 leading-tight">
+                            Advanced <span class="gradient-bg bg-clip-text px-2 py-1 rounded-xl text-white">Computer
+                                Vision</span> Platform
+                        </h1>
+                        <p class="text-base sm:text-lg lg:text-xl text-gray-600 leading-relaxed">
+                            Experience cutting-edge AI-powered human pose estimation with real-time analytics,
+                            fitness tracking, and intelligent surveillance capabilities.
+                        </p>
                     </div>
-                    
-                    <div class="video-container">
-                        <img id="video-feed" src="/video_feed" alt="Video Feed" class="video-feed">
-                        <div id="video-overlay" class="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded">
-                            <span id="current-mode" class="font-semibold">FITNESS MODE</span>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <div class="gradient-fitness p-3 rounded-lg w-fit mb-3">
+                                <i class="fas fa-dumbbell text-white text-lg"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-1">Fitness Tracking</h3>
+                            <p class="text-sm text-gray-600">Real-time form analysis and rep counting</p>
                         </div>
 
-                        <!-- Mode-specific HTML overlay (lightweight, updated from stats) -->
-                        <div id="mode-overlay" class="absolute bottom-4 left-4 text-white">
-                            <!-- Fitness overlay -->
-                            <div id="fitness-overlay" class="hidden bg-black bg-opacity-40 px-3 py-2 rounded">
-                                <div id="fitness-person-info" class="text-sm"></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <div class="gradient-surveillance p-3 rounded-lg w-fit mb-3">
+                                <i class="fas fa-shield-alt text-white text-lg"></i>
                             </div>
-                            <!-- Surveillance overlay -->
-                            <div id="surveillance-overlay" class="hidden bg-black bg-opacity-40 px-3 py-2 rounded max-w-md">
-                                <div id="surveillance-alerts" class="text-sm"></div>
+                            <h3 class="font-semibold text-gray-800 mb-1">Surveillance</h3>
+                            <p class="text-sm text-gray-600">Intelligent monitoring and alerts</p>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <div class="gradient-gaming p-3 rounded-lg w-fit mb-3">
+                                <i class="fas fa-gamepad text-white text-lg"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-1">Interactive Gaming</h3>
+                            <p class="text-sm text-gray-600">Motion-controlled experiences</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <button id="start-demo-btn"
+                            class="w-full sm:w-auto gradient-bg text-white px-6 lg:px-8 py-3 lg:py-4 rounded-xl font-semibold text-base lg:text-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                            <i class="fas fa-play mr-2"></i>Start Interactive Demo
+                        </button>
+                        <p class="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            No setup required • Works with any webcam • Real-time processing
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right Content - Features Preview -->
+                <div class="flex-1 space-y-4 lg:space-y-6">
+                    <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
+                        <div class="flex items-center space-x-4 mb-6">
+                            <div class="gradient-bg p-3 rounded-xl">
+                                <i class="fas fa-eye text-white text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">Real-Time Analysis</h3>
+                                <p class="text-gray-600">33-point pose detection at 30+ FPS</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                            <div class="bg-gray-50 p-2 sm:p-4 rounded-lg">
+                                <div class="text-lg sm:text-2xl font-bold text-indigo-600">30+</div>
+                                <div class="text-xs sm:text-sm text-gray-600">FPS Rate</div>
+                            </div>
+                            <div class="bg-gray-50 p-2 sm:p-4 rounded-lg">
+                                <div class="text-lg sm:text-2xl font-bold text-green-600">95%</div>
+                                <div class="text-xs sm:text-sm text-gray-600">Accuracy</div>
+                            </div>
+                            <div class="bg-gray-50 p-2 sm:p-4 rounded-lg">
+                                <div class="text-lg sm:text-2xl font-bold text-purple-600">0ms</div>
+                                <div class="text-xs sm:text-sm text-gray-600">Latency</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg p-8 card-hover">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-rocket text-indigo-600 mr-2"></i>Key Features
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-green-500"></i>
+                                <span class="text-gray-700">Multi-exercise recognition</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-green-500"></i>
+                                <span class="text-gray-700">Intelligent surveillance zones</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-green-500"></i>
+                                <span class="text-gray-700">Real-time alerts & analytics</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-green-500"></i>
+                                <span class="text-gray-700">Session logging & export</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Control Panel -->
-            <div class="space-y-6">
-                
-                <!-- Mode Selection -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-cogs mr-2"></i>Mode Selection
-                    </h3>
-                    <div class="space-y-3">
-                        <button id="mode-fitness" class="mode-btn mode-active w-full p-3 rounded-lg text-left transition">
-                            <i class="fas fa-dumbbell mr-2"></i>
-                            <span class="font-semibold">Fitness Mode</span>
-                            <p class="text-sm opacity-80 mt-1">Workout tracking & form analysis</p>
-                        </button>
-                        <button id="mode-surveillance" class="mode-btn w-full p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 transition">
-                            <i class="fas fa-shield-alt mr-2"></i>
-                            <span class="font-semibold">Surveillance Mode</span>
-                            <p class="text-sm opacity-80 mt-1">Movement tracking & alerts</p>
-                        </button>
-                        <button id="mode-gaming" class="mode-btn w-full p-3 rounded-lg text-left coming-soon transition">
-                            <i class="fas fa-gamepad mr-2"></i>
-                            <span class="font-semibold">Gaming Mode</span>
-                            <p class="text-sm opacity-80 mt-1">Coming Soon! Interactive games</p>
-                        </button>
+        <!-- Step 2: Mode Selection -->
+        <div id="step-mode" class="step-content fade-in hidden">
+            <div class="min-h-[calc(100vh-120px)] flex flex-col justify-center py-4">
+                <div class="text-center mb-6 lg:mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 lg:mb-3">Choose Your Experience</h2>
+                    <p class="text-base sm:text-lg text-gray-600">Select the computer vision service you'd like to
+                        explore</p>
+                </div>
+
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto flex-1 items-center">
+                    <!-- Fitness Mode -->
+                    <div id="mode-fitness" class="service-card p-8 rounded-2xl cursor-pointer card-hover">
+                        <div class="text-center space-y-6">
+                            <div class="gradient-fitness p-6 rounded-2xl w-fit mx-auto">
+                                <i class="fas fa-dumbbell text-white text-4xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Fitness Mode</h3>
+                                <p class="text-gray-600 mb-4">AI-powered workout tracking with real-time form analysis
+                                    and rep counting</p>
+                                <div class="space-y-2 text-sm text-gray-500">
+                                    <div><i class="fas fa-check text-green-500 mr-2"></i>Exercise recognition</div>
+                                    <div><i class="fas fa-check text-green-500 mr-2"></i>Form quality scoring</div>
+                                    <div><i class="fas fa-check text-green-500 mr-2"></i>Progress tracking</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Surveillance Mode -->
+                    <div id="mode-surveillance" class="service-card p-8 rounded-2xl cursor-pointer card-hover">
+                        <div class="text-center space-y-6">
+                            <div class="gradient-surveillance p-6 rounded-2xl w-fit mx-auto">
+                                <i class="fas fa-shield-alt text-white text-4xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Surveillance Mode</h3>
+                                <p class="text-gray-600 mb-4">Intelligent monitoring with behavior analysis and
+                                    automated alerts</p>
+                                <div class="space-y-2 text-sm text-gray-500">
+                                    <div><i class="fas fa-check text-green-500 mr-2"></i>Motion detection</div>
+                                    <div><i class="fas fa-check text-green-500 mr-2"></i>Zone monitoring</div>
+                                    <div><i class="fas fa-check text-green-500 mr-2"></i>Alert system</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gaming Mode -->
+                    <div id="mode-gaming" class="service-card coming-soon-card p-8 rounded-2xl cursor-not-allowed">
+                        <div class="text-center space-y-6">
+                            <div class="gradient-gaming p-6 rounded-2xl w-fit mx-auto">
+                                <i class="fas fa-gamepad text-white text-4xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Gaming Mode</h3>
+                                <p class="text-gray-600 mb-4">Motion-controlled interactive games and experiences</p>
+                                <div class="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    Coming Soon
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center mt-6 lg:mt-8">
+                    <button id="back-to-landing" class="text-gray-600 hover:text-gray-800 font-medium">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Overview
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Service Selection -->
+        <div id="step-service" class="step-content fade-in hidden">
+            <!-- Fitness Services -->
+            <div id="fitness-services" class="service-selection hidden">
+                <div class="min-h-[calc(100vh-120px)] flex flex-col justify-center py-4">
+                    <div class="text-center mb-6 lg:mb-8">
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 lg:mb-3">Fitness Services</h2>
+                        <p class="text-base sm:text-lg text-gray-600">Choose your exercise type for personalized
+                            analysis</p>
+                    </div>
+
+                    <div
+                        class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 max-w-6xl mx-auto flex-1 items-center">
+                        <div id="service-squat" class="service-card p-6 rounded-xl cursor-pointer card-hover">
+                            <div class="text-center space-y-4">
+                                <div class="gradient-fitness p-4 rounded-xl w-fit mx-auto">
+                                    <i class="fas fa-arrow-down text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800">Squats</h3>
+                                <p class="text-sm text-gray-600">Lower body strength training</p>
+                            </div>
+                        </div>
+
+                        <div id="service-pushup" class="service-card p-6 rounded-xl cursor-pointer card-hover">
+                            <div class="text-center space-y-4">
+                                <div class="gradient-fitness p-4 rounded-xl w-fit mx-auto">
+                                    <i class="fas fa-hand-paper text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800">Push-ups</h3>
+                                <p class="text-sm text-gray-600">Upper body strength</p>
+                            </div>
+                        </div>
+
+                        <div id="service-bicep" class="service-card p-6 rounded-xl cursor-pointer card-hover">
+                            <div class="text-center space-y-4">
+                                <div class="gradient-fitness p-4 rounded-xl w-fit mx-auto">
+                                    <i class="fas fa-fist-raised text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800">Bicep Curls</h3>
+                                <p class="text-sm text-gray-600">Arm development</p>
+                            </div>
+                        </div>
+
+                        <div class="service-card coming-soon-card p-6 rounded-xl cursor-not-allowed">
+                            <div class="text-center space-y-4">
+                                <div class="gradient-fitness p-4 rounded-xl w-fit mx-auto">
+                                    <i class="fas fa-plus text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800">More Exercises</h3>
+                                <p class="text-sm text-gray-600">Coming Soon</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center mt-6 lg:mt-8">
+                    <button class="back-to-mode text-gray-600 hover:text-gray-800 font-medium">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Mode Selection
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Surveillance Services -->
+        <div id="surveillance-services" class="service-selection hidden">
+            <div class="min-h-[calc(100vh-120px)] flex flex-col justify-center py-4">
+                <div class="text-center mb-6 lg:mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 lg:mb-3">Surveillance Services</h2>
+                    <p class="text-base sm:text-lg text-gray-600">Select monitoring capabilities for your security needs
+                    </p>
+                </div>
+
+                <div
+                    class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 max-w-6xl mx-auto flex-1 items-center">
+                    <div id="service-zone-detection" class="service-card p-6 rounded-xl cursor-pointer card-hover">
+                        <div class="text-center space-y-4">
+                            <div class="gradient-surveillance p-4 rounded-xl w-fit mx-auto">
+                                <i class="fas fa-map-marker-alt text-white text-2xl"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-800">Zone Detection</h3>
+                            <p class="text-sm text-gray-600">Restricted area monitoring</p>
+                        </div>
+                    </div>
+
+                    <div id="service-rapid-movement" class="service-card p-6 rounded-xl cursor-pointer card-hover">
+                        <div class="text-center space-y-4">
+                            <div class="gradient-surveillance p-4 rounded-xl w-fit mx-auto">
+                                <i class="fas fa-bolt text-white text-2xl"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-800">Rapid Movement</h3>
+                            <p class="text-sm text-gray-600">Speed-based alerts</p>
+                        </div>
+                    </div>
+
+                    <div id="service-fall-detection" class="service-card p-6 rounded-xl cursor-pointer card-hover">
+                        <div class="text-center space-y-4">
+                            <div class="gradient-surveillance p-4 rounded-xl w-fit mx-auto">
+                                <i class="fas fa-user-injured text-white text-2xl"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-800">Fall Detection</h3>
+                            <p class="text-sm text-gray-600">Emergency monitoring</p>
+                        </div>
+                    </div>
+
+                    <div class="service-card coming-soon-card p-6 rounded-xl cursor-not-allowed">
+                        <div class="text-center space-y-4">
+                            <div class="gradient-surveillance p-4 rounded-xl w-fit mx-auto">
+                                <i class="fas fa-plus text-white text-2xl"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-800">More Features</h3>
+                            <p class="text-sm text-gray-600">Coming Soon</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Exercise Selection (for Fitness Mode) -->
-                <div id="exercise-selection" class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-dumbbell mr-2"></i>Exercise Type
-                    </h3>
-                    <div class="space-y-3">
-                        <button id="exercise-squat" class="exercise-btn exercise-active w-full p-3 rounded-lg text-left transition">
-                            <i class="fas fa-arrow-down mr-2"></i>
-                            <span class="font-semibold">Squats</span>
-                            <p class="text-sm opacity-80 mt-1">Lower body strength training</p>
-                        </button>
-                        <button id="exercise-pushup" class="exercise-btn w-full p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 transition">
-                            <i class="fas fa-hand-paper mr-2"></i>
-                            <span class="font-semibold">Push-ups</span>
-                            <p class="text-sm opacity-80 mt-1">Upper body strength training</p>
-                        </button>
-                        <button id="exercise-bicep" class="exercise-btn w-full p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 transition">
-                            <i class="fas fa-fist-raised mr-2"></i>
-                            <span class="font-semibold">Bicep Curls</span>
-                            <p class="text-sm opacity-80 mt-1">Arm muscle development</p>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Real-time Stats -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-chart-line mr-2"></i>Live Statistics
-                    </h3>
-                    <div class="space-y-4">
-                        <div class="stats-card p-3 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm opacity-80">FPS</span>
-                                <span id="fps-value" class="text-xl font-bold">0</span>
-                            </div>
-                        </div>
-                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm opacity-80">Active People</span>
-                                <span id="people-value" class="text-xl font-bold">0</span>
-                            </div>
-                        </div>
-                        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-3 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm opacity-80">Session Reps</span>
-                                <span id="reps-value" class="text-xl font-bold">0</span>
-                            </div>
-                        </div>
-                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-3 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm opacity-80">Session Duration</span>
-                                <span id="duration-value" class="text-xl font-bold">00:00</span>
-                            </div>
-                        </div>
-                        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-3 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm opacity-80">Alerts</span>
-                                <span id="alerts-value" class="text-xl font-bold">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Session Logs -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-file-alt mr-2"></i>Session Logs
-                    </h3>
-                    <div id="logs-container" class="space-y-2 max-h-64 overflow-y-auto">
-                        <p class="text-gray-500 text-sm">No logs available</p>
-                    </div>
-                    <button id="refresh-logs" class="w-full mt-4 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg transition">
-                        <i class="fas fa-sync-alt mr-1"></i>Refresh Logs
+                <div class="text-center mt-6 lg:mt-8">
+                    <button class="back-to-mode text-gray-600 hover:text-gray-800 font-medium">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Mode Selection
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t mt-12 py-6">
-        <div class="container mx-auto px-4 text-center text-gray-600">
-            <p>&copy; 2024 VisionTrack - Real-Time Human Pose Estimation System</p>
-            <p class="text-sm mt-1">Powered by MediaPipe & OpenCV</p>
-        </div>
-    </footer>
+    <!-- Step 4: Live Demo -->
+    <div id="step-demo" class="step-content fade-in hidden">
+        <div
+            class="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[calc(100vh-120px)] h-[calc(100vh-120px)] overflow-hidden">
 
-    <script>
-        // Global variables
-        let currentMode = 'fitness';
-        let isConnected = false;
-
-        // DOM elements
-        const statusIndicator = document.getElementById('status-indicator');
-        const currentModeSpan = document.getElementById('current-mode');
-        const videoFeed = document.getElementById('video-feed');
-
-        // Stats elements
-        const fpsValue = document.getElementById('fps-value');
-        const personsValue = document.getElementById('persons-value');
-        const repsValue = document.getElementById('reps-value');
-        const alertsValue = document.getElementById('alerts-value');
-
-        // Buttons
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const saveBtn = document.getElementById('save-btn');
-        const audioToggleBtn = document.getElementById('audio-toggle-btn');
-        const refreshLogsBtn = document.getElementById('refresh-logs');
-
-        // Mode buttons
-        const modeButtons = document.querySelectorAll('.mode-btn');
-        const exerciseButtons = document.querySelectorAll('.exercise-btn');
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            setupEventListeners();
-            updateStats();
-            loadLogs();
-            
-            // Initialize exercise selection visibility
-            updateModeDisplay('fitness'); // Default to fitness mode
-            
-            // Auto-refresh stats every 2 seconds
-            setInterval(updateStats, 2000);
-        });
-
-        function setupEventListeners() {
-            // Control buttons
-            startBtn.addEventListener('click', () => controlAction('start'));
-            stopBtn.addEventListener('click', () => controlAction('stop'));
-            resetBtn.addEventListener('click', () => controlAction('reset'));
-            saveBtn.addEventListener('click', saveSession);
-            audioToggleBtn.addEventListener('click', toggleAudio);
-            refreshLogsBtn.addEventListener('click', loadLogs);
-
-            // Mode selection
-            document.getElementById('mode-fitness').addEventListener('click', () => setMode('fitness'));
-            document.getElementById('mode-surveillance').addEventListener('click', () => setMode('surveillance'));
-            document.getElementById('mode-gaming').addEventListener('click', () => setMode('gaming'));
-            
-            // Exercise selection
-            document.getElementById('exercise-squat').addEventListener('click', () => setExercise('squat'));
-            document.getElementById('exercise-pushup').addEventListener('click', () => setExercise('pushup'));
-            document.getElementById('exercise-bicep').addEventListener('click', () => setExercise('bicep_curl'));
-
-            // Video feed error handling
-            videoFeed.addEventListener('load', () => {
-                updateConnectionStatus(true);
-            });
-            
-            videoFeed.addEventListener('error', () => {
-                updateConnectionStatus(false);
-            });
-        }
-
-        async function setMode(mode) {
-            try {
-                const response = await fetch(`/api/mode/${mode}`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    currentMode = mode;
-                    updateModeUI(mode);
-                    updateModeDisplay(mode);
-                }
-            } catch (error) {
-                console.error('Error setting mode:', error);
-            }
-        }
-
-        function updateModeUI(mode) {
-            // Reset all mode buttons
-            modeButtons.forEach(btn => {
-                btn.classList.remove('mode-active');
-                btn.classList.add('bg-gray-100', 'hover:bg-gray-200');
-            });
-
-            // Activate selected mode button
-            const activeBtn = document.getElementById(`mode-${mode}`);
-            if (activeBtn) {
-                activeBtn.classList.add('mode-active');
-                activeBtn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
-            }
-        }
-
-        function updateModeDisplay(mode) {
-            const modeNames = {
-                'fitness': 'FITNESS MODE',
-                'surveillance': 'SURVEILLANCE MODE',
-                'gaming': 'GAMING MODE'
-            };
-            currentModeSpan.textContent = modeNames[mode] || 'UNKNOWN MODE';
-            
-            // Show/hide exercise selection for fitness mode
-            const exerciseSelection = document.getElementById('exercise-selection');
-            if (mode === 'fitness') {
-                exerciseSelection.style.display = 'block';
-            } else {
-                exerciseSelection.style.display = 'none';
-            }
-        }
-
-        async function saveSession() {
-            try {
-                const response = await fetch('/api/session/save', {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Session saved successfully!');
-                    loadLogs(); // Refresh logs
-                } else {
-                    alert('Error saving session: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Error saving session:', error);
-                alert('Error saving session');
-            }
-        }
-
-        async function toggleAudio() {
-            try {
-                const response = await fetch('/api/audio/toggle', {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    const icon = audioToggleBtn.querySelector('i');
-                    const status = document.getElementById('audio-status');
-                    
-                    if (data.audio_enabled) {
-                        icon.className = 'fas fa-volume-up mr-1';
-                        status.textContent = 'Audio';
-                        audioToggleBtn.className = 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition';
-                    } else {
-                        icon.className = 'fas fa-volume-mute mr-1';
-                        status.textContent = 'Muted';
-                        audioToggleBtn.className = 'bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition';
-                    }
-                } else {
-                    console.error('Error toggling audio:', data.error);
-                }
-            } catch (error) {
-                console.error('Error toggling audio:', error);
-            }
-        }
-
-        async function setExercise(exerciseType) {
-            try {
-                const response = await fetch(`/api/exercise/set/${exerciseType}`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update UI
-                    exerciseButtons.forEach(btn => {
-                        btn.classList.remove('exercise-active');
-                        btn.classList.add('bg-gray-100', 'hover:bg-gray-200');
-                    });
-                    
-                    const activeBtn = document.getElementById(`exercise-${exerciseType}`);
-                    if (activeBtn) {
-                        activeBtn.classList.add('exercise-active');
-                        activeBtn.classList.remove('bg-gray-100', 'hover:bg-gray-200');
-                    }
-                } else {
-                    console.error('Error setting exercise type:', data.error);
-                }
-            } catch (error) {
-                console.error('Error setting exercise type:', error);
-            }
-        }
-
-        async function controlAction(action) {
-            try {
-                const response = await fetch(`/api/control/${action}`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    console.log(`${action} action successful`);
-                    if (action === 'reset') {
-                        // Reset UI stats
-                        repsValue.textContent = '0';
-                        alertsValue.textContent = '0';
-                    }
-                }
-            } catch (error) {
-                console.error(`Error performing ${action}:`, error);
-            }
-        }
-
-        async function updateStats() {
-            try {
-                const response = await fetch('/api/stats');
-                const stats = await response.json();
-                
-                // Update stats display
-                fpsValue.textContent = stats.fps || '0';
-                document.getElementById('people-value').textContent = stats.active_people || '0';
-                repsValue.textContent = stats.session_reps || '0';
-                alertsValue.textContent = stats.alerts_count || '0';
-                
-                // Update session duration
-                const duration = stats.session_duration || 0;
-                const minutes = Math.floor(duration / 60);
-                const seconds = Math.floor(duration % 60);
-                document.getElementById('duration-value').textContent = 
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                // Update mode if different
-                if (stats.current_mode !== currentMode) {
-                    currentMode = stats.current_mode;
-                    updateModeUI(currentMode);
-                    updateModeDisplay(currentMode);
-                }
-                
-                updateConnectionStatus(true);
-                // Update mode-specific lightweight overlays
-                const fitnessOverlay = document.getElementById('fitness-overlay');
-                const surveillanceOverlay = document.getElementById('surveillance-overlay');
-
-                if (stats.current_mode === 'fitness') {
-                    // Show fitness overlay
-                    fitnessOverlay.classList.remove('hidden');
-                    surveillanceOverlay.classList.add('hidden');
-
-                    const personInfo = document.getElementById('fitness-person-info');
-                    const reps = stats.session_reps || 0;
-                    const people = stats.active_people || stats.detected_persons || 0;
-                    personInfo.innerHTML = `<strong>Reps:</strong> ${reps} &nbsp; <strong>People:</strong> ${people}`;
-                } else if (stats.current_mode === 'surveillance') {
-                    // Show surveillance overlay
-                    surveillanceOverlay.classList.remove('hidden');
-                    fitnessOverlay.classList.add('hidden');
-
-                    // Fetch a few recent alerts to show
-                    try {
-                        const aresp = await fetch('/api/surveillance/alerts');
-                        const ajson = await aresp.json();
-                        const alertDiv = document.getElementById('surveillance-alerts');
-                        if (ajson && ajson.alerts && ajson.alerts.length) {
-                            alertDiv.innerHTML = ajson.alerts.slice(0,3).map(a => {
-                                const t = a.timestamp || a.time || '';
-                                return `<div><strong>${a.alert_type}</strong> (${t}) - ${a.description || ''}</div>`;
-                            }).join('');
-                        } else {
-                            alertDiv.innerHTML = '<div>No recent alerts</div>';
-                        }
-                    } catch (err) {
-                        console.warn('Could not fetch alerts for overlay', err);
-                    }
-                } else {
-                    // Hide both overlays for other modes
-                    fitnessOverlay.classList.add('hidden');
-                    surveillanceOverlay.classList.add('hidden');
-                }
-            } catch (error) {
-                updateConnectionStatus(false);
-            }
-        }
-
-        async function loadLogs() {
-            try {
-                const response = await fetch('/api/logs');
-                const logs = await response.json();
-                
-                const container = document.getElementById('logs-container');
-                
-                if (logs.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm">No logs available</p>';
-                    return;
-                }
-                
-                container.innerHTML = logs.map(log => `
-                    <div class="bg-gray-50 p-3 rounded border-l-4 border-indigo-500">
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium text-sm">${log.filename}</span>
-                            <a href="/api/download/${log.filename}" 
-                               class="text-indigo-600 hover:text-indigo-800 text-sm">
-                                <i class="fas fa-download"></i>
-                            </a>
+            <!-- Main Video Feed -->
+            <div class="lg:col-span-3">
+                <div class="bg-white rounded-xl shadow-lg p-4 h-full flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <div id="demo-mode-icon" class="gradient-bg p-2 rounded-lg">
+                                <i class="fas fa-video text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-800" id="demo-title">Live Demo</h2>
+                                <p class="text-xs text-gray-600" id="demo-subtitle">Real-time analysis</p>
+                            </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">
-                            ${new Date(log.modified).toLocaleString()} • ${(log.size / 1024).toFixed(1)} KB
-                        </p>
-                    </div>
-                `).join('');
-                
-            } catch (error) {
-                console.error('Error loading logs:', error);
-            }
-        }
 
-        function updateConnectionStatus(connected) {
-            isConnected = connected;
-            const indicator = statusIndicator.querySelector('div');
-            const text = statusIndicator.querySelector('span');
-            
-            if (connected) {
-                indicator.classList.remove('bg-red-500');
-                indicator.classList.add('bg-green-500');
-                text.textContent = 'Connected';
-            } else {
-                indicator.classList.remove('bg-green-500');
-                indicator.classList.add('bg-red-500');
-                text.textContent = 'Disconnected';
-            }
-        }
-    </script>
+                        <div class="flex space-x-1">
+                            <button id="start-btn"
+                                class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition font-medium">
+                                <i class="fas fa-play mr-1"></i>Start
+                            </button>
+                            <button id="stop-btn"
+                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition font-medium">
+                                <i class="fas fa-stop mr-1"></i>Stop
+                            </button>
+                            <button id="reset-btn"
+                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition font-medium">
+                                <i class="fas fa-refresh mr-1"></i>Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="video-container flex-1 mb-4">
+                        <img id="video-feed" src="/video_feed" alt="Video Feed" class="video-feed">
+                        <div id="video-overlay"
+                            class="absolute top-3 left-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded text-sm">
+                            <span id="current-mode" class="font-semibold">DEMO MODE</span>
+                        </div>
+                        <div id="connection-status"
+                            class="absolute top-3 right-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded text-sm">
+                            <i class="fas fa-circle mr-1 text-red-500" id="status-dot"></i>
+                            <span id="status-text">Disconnected</span>
+                        </div>
+                    </div>
+
+                    <!-- Control Panel -->
+                    <div class="flex flex-wrap gap-2 mt-auto">
+                        <button id="save-btn"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition font-medium">
+                            <i class="fas fa-save mr-1"></i>Save
+                        </button>
+                        <button id="audio-toggle-btn"
+                            class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition font-medium">
+                            <i class="fas fa-volume-up mr-1"></i><span id="audio-status">Audio</span>
+                        </button>
+                        <button id="back-to-services"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition font-medium">
+                            <i class="fas fa-arrow-left mr-1"></i>Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Panel -->
+            <div class="space-y-3 overflow-y-auto h-full">
+                <!-- Real-time Stats -->
+                <div class="bg-white rounded-xl shadow-lg p-4">
+                    <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-chart-line mr-2 text-indigo-600"></i>Live Stats
+                    </h3>
+
+                    <div class="space-y-3" id="stats-container">
+                        <!-- FPS -->
+                        <div class="bg-gradient-to-r from-green-400 to-green-500 text-white p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium">FPS</span>
+                                <span id="fps-value" class="text-lg font-bold">0</span>
+                            </div>
+                        </div>
+
+                        <!-- People -->
+                        <div class="bg-gradient-to-r from-blue-400 to-blue-500 text-white p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium">People</span>
+                                <span id="people-value" class="text-lg font-bold">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Reps/Alerts (Dynamic based on mode) -->
+                        <div id="primary-stat"
+                            class="bg-gradient-to-r from-purple-400 to-purple-500 text-white p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span id="primary-stat-label" class="text-sm font-medium">Reps</span>
+                                <span id="reps-value" class="text-lg font-bold">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Duration -->
+                        <div class="bg-gradient-to-r from-orange-400 to-orange-500 text-white p-3 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium">Duration</span>
+                                <span id="duration-value" class="text-lg font-bold">00:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Alerts (for surveillance) -->
+                        <div id="alerts-stat"
+                            class="bg-gradient-to-r from-red-400 to-red-500 text-white p-3 rounded-lg hidden">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium">Alerts</span>
+                                <span id="alerts-value" class="text-lg font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Information -->
+                <div class="bg-white rounded-xl shadow-lg p-4">
+                    <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>Service Info
+                    </h3>
+
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Mode:</span>
+                            <span class="font-medium" id="session-mode">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Service:</span>
+                            <span class="font-medium" id="session-service">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Started:</span>
+                            <span class="font-medium" id="session-start">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Status:</span>
+                            <span class="font-medium" id="session-status">
+                                <span class="flex items-center">
+                                    <div class="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                                    Offline
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Details -->
+                <div class="bg-white rounded-xl shadow-lg p-4">
+                    <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-cogs mr-2 text-green-600"></i>Details
+                    </h3>
+
+                    <div id="service-info" class="text-sm text-gray-600">
+                        Service specific information will appear here when demo starts.
+                    </div>
+                </div>
+
+                <!-- Session Logs -->
+                <div class="bg-white rounded-xl shadow-lg p-4 flex-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-base font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-file-alt mr-2 text-green-600"></i>Logs
+                        </h3>
+                        <button id="refresh-logs" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">
+                            <i class="fas fa-sync-alt mr-1"></i>Refresh
+                        </button>
+                    </div>
+
+                    <div id="logs-container" class="space-y-1 max-h-32 overflow-y-auto text-xs">
+                        <p class="text-gray-500 text-center py-2">No logs available</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="../static/js/scripts.js"></script>
 </body>
+
 </html>

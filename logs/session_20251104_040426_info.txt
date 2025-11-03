@@ -1,0 +1,13 @@
+Session Start: 2025-11-04T04:04:26.677479
+Session ID: 20251104_040426
+==================================================
+Configuration:
+  exercise_type: squat
+  auto_detect: False
+==================================================
+Session Log:
+Session End: 2025-11-04T04:06:29.418923
+Duration: 0:02:02.741444
+Total Reps: 0
+Participants: 1
+Average Reps per Person: 0.0
