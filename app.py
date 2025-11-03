@@ -88,24 +88,47 @@ class VisionTrackApp:
     
     def start_camera(self):
         """Start camera capture."""
-        if self.camera is None:
-            self.camera = cv2.VideoCapture(0)
-            self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            self.camera.set(cv2.CAP_PROP_FPS, 30)
-        
-        # Create new session
-        if not self.current_session_id:
-            self.current_session_id = db_manager.create_session(
-                mode=self.current_mode,
-                metadata={'camera_resolution': '640x480', 'fps_target': 30}
-            )
-        
-        self.is_running = True
-        return True
+        try:
+            print(f"[INFO] Starting camera in {self.current_mode} mode...")
+            
+            if self.camera is None:
+                self.camera = cv2.VideoCapture(0)
+                self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                self.camera.set(cv2.CAP_PROP_FPS, 30)
+                
+                # Test if camera is working
+                ret, test_frame = self.camera.read()
+                if not ret:
+                    print("[ERROR] Failed to read from camera")
+                    self.camera.release()
+                    self.camera = None
+                    return False
+                else:
+                    print("[INFO] Camera initialized successfully")
+            
+            # Create new session
+            if not self.current_session_id:
+                self.current_session_id = db_manager.create_session(
+                    mode=self.current_mode,
+                    metadata={'camera_resolution': '640x480', 'fps_target': 30}
+                )
+                print(f"[INFO] Created session: {self.current_session_id}")
+            
+            self.is_running = True
+            print("[INFO] Camera started successfully")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to start camera: {e}")
+            if self.camera:
+                self.camera.release()
+                self.camera = None
+            return False
     
     def stop_camera(self):
         """Stop camera capture."""
+        print("[INFO] Stopping camera...")
         self.is_running = False
         
         # End current session
@@ -118,11 +141,17 @@ class VisionTrackApp:
                 alerts_generated=self.stats['alerts_count'],
                 duration_seconds=session_duration
             )
+            print(f"[INFO] Session {self.current_session_id} ended")
             self.current_session_id = None
         
         if self.camera:
             self.camera.release()
             self.camera = None
+            print("[INFO] Camera released")
+            
+        # Reset stats
+        self.stats['detected_persons'] = 0
+        self.stats['fps'] = 0
     
     def set_mode(self, mode: str):
         """Set the current operating mode."""
@@ -149,34 +178,53 @@ class VisionTrackApp:
         fps_counter = 0
         fps_start_time = time.time()
         
+        print(f"[INFO] Starting frame generation for {self.current_mode} mode")
+        
         while self.is_running:
             if self.camera is None:
+                print("[WARN] Camera is None, waiting...")
+                time.sleep(0.1)
                 continue
                 
-            success, frame = self.camera.read()
-            if not success:
-                continue
-            
-            # Process frame based on current mode
-            processed_frame = self.process_frame(frame)
-            
-            # Calculate FPS
-            fps_counter += 1
-            if time.time() - fps_start_time >= 1.0:
-                self.stats['fps'] = fps_counter
-                fps_counter = 0
-                fps_start_time = time.time()
-            
-            # Encode frame
-            ret, buffer = cv2.imencode('.jpg', processed_frame)
-            frame_bytes = buffer.tobytes()
-            
-            # Store frame for other uses
-            with self.lock:
-                self.frame = processed_frame
-            
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            try:
+                with self.lock:
+                    success, frame = self.camera.read()
+                
+                if not success:
+                    print("[WARN] Failed to read frame from camera")
+                    time.sleep(0.1)
+                    continue
+                
+                # Process frame based on current mode
+                processed_frame = self.process_frame(frame)
+                
+                # Calculate FPS
+                fps_counter += 1
+                if time.time() - fps_start_time >= 1.0:
+                    self.stats['fps'] = fps_counter
+                    fps_counter = 0
+                    fps_start_time = time.time()
+                
+                # Encode frame
+                ret, buffer = cv2.imencode('.jpg', processed_frame)
+                if not ret:
+                    print("[ERROR] Failed to encode frame")
+                    continue
+                    
+                frame_bytes = buffer.tobytes()
+                
+                # Store frame for other uses
+                with self.lock:
+                    self.frame = processed_frame
+                
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                       
+            except Exception as e:
+                print(f"[ERROR] Frame generation error: {e}")
+                time.sleep(0.1)
+        
+        print("[INFO] Frame generation stopped")
     
     def process_frame(self, frame):
         """Process frame based on current mode."""
@@ -237,13 +285,24 @@ class VisionTrackApp:
     def process_surveillance_mode(self, frame, pose_results):
         """Process frame for surveillance mode."""
         if self.surveillance_analyzer:
-            processed_frame = self.surveillance_analyzer.process_frame(frame, pose_results)
-        else:
-            # Basic surveillance placeholder
-            processed_frame = frame.copy()
-            if pose_results.pose_landmarks:
-                self.pose_detector.draw_landmarks(processed_frame, pose_results.pose_landmarks)
-                self.stats['detected_persons'] = 1
+            try:
+                processed_frame = self.surveillance_analyzer.process_frame(frame, pose_results)
+                
+                # Update stats from surveillance analyzer
+                surveillance_summary = self.surveillance_analyzer.get_surveillance_summary()
+                self.stats['detected_persons'] = surveillance_summary['active_people']
+                self.stats['alerts_count'] = surveillance_summary['active_alerts']
+                
+                return processed_frame
+            except Exception as e:
+                print(f"[ERROR] Surveillance processing error: {e}")
+                # Fall back to basic processing
+        
+        # Basic surveillance placeholder
+        processed_frame = frame.copy()
+        if pose_results.pose_landmarks:
+            self.pose_detector.draw_landmarks(processed_frame, pose_results.pose_landmarks)
+            self.stats['detected_persons'] = 1
         # Do not draw text overlays on-frame for surveillance. The analyzer will draw
         # non-textual markers (zones, person circles). All textual UI moves to web UI.
 
@@ -274,10 +333,28 @@ def index():
 @app.route('/video_feed')
 def video_feed():
     """Video streaming route."""
-    if not vision_app.is_running:
-        vision_app.start_camera()
+    def video_stream():
+        while True:
+            if not vision_app.is_running or vision_app.camera is None:
+                # Return a blank frame if not running
+                blank_image = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(blank_image, 'Camera Offline', (200, 240), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                ret, buffer = cv2.imencode('.jpg', blank_image)
+                frame_bytes = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                time.sleep(0.1)  # 10 FPS for blank frame
+            else:
+                # Stream from camera
+                try:
+                    for frame in vision_app.generate_frames():
+                        yield frame
+                except Exception as e:
+                    print(f"[ERROR] Video stream error: {e}")
+                    time.sleep(0.1)
     
-    return Response(vision_app.generate_frames(),
+    return Response(video_stream(),
                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/mode/<mode>', methods=['POST'])
@@ -295,6 +372,22 @@ def get_stats():
     stats = vision_app.stats.copy()
     stats['uptime_seconds'] = uptime_seconds
     stats['current_mode'] = vision_app.current_mode
+    stats['is_running'] = vision_app.is_running
+    stats['camera_active'] = vision_app.camera is not None
+    
+    # Add mode-specific stats
+    if vision_app.current_mode == 'surveillance' and vision_app.surveillance_analyzer:
+        surveillance_summary = vision_app.surveillance_analyzer.get_surveillance_summary()
+        stats.update({
+            'detected_persons': surveillance_summary['active_people'],
+            'alerts_count': surveillance_summary['active_alerts'],
+            'total_people_detected': surveillance_summary['total_people_detected'],
+            'recent_alerts': surveillance_summary.get('recent_alerts', 0),
+            'alert_counts': surveillance_summary.get('alert_counts', {}),
+            'active_service': surveillance_summary.get('active_service', 'none'),
+            'restricted_zones': surveillance_summary['restricted_zones']
+        })
+    
     return jsonify(stats)
 
 @app.route('/api/control/<action>', methods=['POST'])
@@ -302,17 +395,43 @@ def control_action(action):
     """Control actions (start, stop, reset)."""
     if action == 'start':
         success = vision_app.start_camera()
-        return jsonify({'success': success})
+        if success:
+            return jsonify({
+                'success': True, 
+                'message': 'Camera started successfully',
+                'mode': vision_app.current_mode,
+                'running': vision_app.is_running
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': 'Failed to start camera - please check if camera is available'
+            }), 500
+            
     elif action == 'stop':
         vision_app.stop_camera()
-        return jsonify({'success': True})
+        return jsonify({
+            'success': True, 
+            'message': 'Camera stopped',
+            'running': vision_app.is_running
+        })
+        
     elif action == 'reset':
         # Reset session data
         if hasattr(vision_app.fitness_analyzer, 'reset_session'):
             vision_app.fitness_analyzer.reset_session()
+        
+        # Reset surveillance data if in surveillance mode
+        if vision_app.current_mode == 'surveillance' and vision_app.surveillance_analyzer:
+            vision_app.surveillance_analyzer.reset_session()
+            
         vision_app.stats['session_reps'] = 0
         vision_app.stats['alerts_count'] = 0
-        return jsonify({'success': True})
+        vision_app.stats['uptime'] = datetime.now()
+        return jsonify({
+            'success': True, 
+            'message': 'Session reset successfully'
+        })
     else:
         return jsonify({'success': False, 'error': 'Invalid action'}), 400
 
@@ -561,6 +680,70 @@ def remove_surveillance_zone(zone_id):
     
     vision_app.surveillance_analyzer.remove_restricted_zone(zone_id)
     return jsonify({'success': True})
+
+@app.route('/api/surveillance/service/<service_type>', methods=['POST'])
+def set_surveillance_service(service_type):
+    """Set surveillance service configuration."""
+    try:
+        if not vision_app.surveillance_analyzer:
+            return jsonify({'error': 'Surveillance analyzer not available'}), 400
+        
+        # Enable/disable surveillance features based on service type
+        if service_type == 'zone_detection':
+            vision_app.surveillance_analyzer.zone_detection_enabled = True
+            vision_app.surveillance_analyzer.movement_analysis_enabled = False
+            vision_app.surveillance_analyzer.fall_detection_enabled = False
+            
+        elif service_type == 'rapid_movement':
+            vision_app.surveillance_analyzer.zone_detection_enabled = False
+            vision_app.surveillance_analyzer.movement_analysis_enabled = True
+            vision_app.surveillance_analyzer.fall_detection_enabled = False
+            
+        elif service_type == 'fall_detection':
+            vision_app.surveillance_analyzer.zone_detection_enabled = False
+            vision_app.surveillance_analyzer.movement_analysis_enabled = False
+            vision_app.surveillance_analyzer.fall_detection_enabled = True
+            
+        else:
+            return jsonify({'error': f'Unknown surveillance service: {service_type}'}), 400
+        
+        return jsonify({
+            'success': True, 
+            'service': service_type,
+            'message': f'Surveillance service set to {service_type}'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/surveillance/service/status', methods=['GET'])
+def get_surveillance_service_status():
+    """Get current surveillance service configuration."""
+    try:
+        if not vision_app.surveillance_analyzer:
+            return jsonify({'error': 'Surveillance analyzer not available'}), 400
+        
+        # Determine active service based on enabled features
+        active_service = 'none'
+        if vision_app.surveillance_analyzer.zone_detection_enabled:
+            active_service = 'zone_detection'
+        elif vision_app.surveillance_analyzer.movement_analysis_enabled:
+            active_service = 'rapid_movement'
+        elif vision_app.surveillance_analyzer.fall_detection_enabled:
+            active_service = 'fall_detection'
+        
+        return jsonify({
+            'active_service': active_service,
+            'features': {
+                'zone_detection': vision_app.surveillance_analyzer.zone_detection_enabled,
+                'movement_analysis': vision_app.surveillance_analyzer.movement_analysis_enabled,
+                'fall_detection': vision_app.surveillance_analyzer.fall_detection_enabled,
+                'person_detection': vision_app.surveillance_analyzer.person_detection_enabled
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/surveillance/alerts/export', methods=['POST'])
 def export_surveillance_alerts():

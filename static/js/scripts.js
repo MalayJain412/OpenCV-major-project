@@ -297,6 +297,24 @@ async function startDemo() {
             const exerciseData = await exerciseResponse.json();
             console.log('Exercise set response:', exerciseData);
         }
+        
+        // Set surveillance service if needed
+        if (selectedMode === 'surveillance' && selectedService) {
+            const serviceResponse = await fetch(`/api/surveillance/service/${selectedService}`, {
+                method: 'POST'
+            });
+            const serviceData = await serviceResponse.json();
+            console.log('Surveillance service set response:', serviceData);
+        }
+
+        // Initialize demo UI before starting
+        initializeDemo();
+
+        // Initialize demo UI before starting
+        initializeDemo();
+
+        // Show loading state
+        updateConnectionStatus(false, 'Starting camera...');
 
         // Start camera and session
         const startResponse = await fetch('/api/control/start', { method: 'POST' });
@@ -306,7 +324,7 @@ async function startDemo() {
         if (startData.success) {
             sessionStartTime = new Date();
             updateDemoControls(true);
-            updateConnectionStatus(true);
+            updateConnectionStatus(true, 'Connected');
 
             // Start real-time stats updates
             if (statsInterval) {
@@ -315,8 +333,11 @@ async function startDemo() {
             statsInterval = setInterval(updateStats, 1000); // Every 1 second
             updateStats(); // Immediate first update
             updateSessionInfo();
+            
+            console.log('Demo started successfully');
         } else {
-            throw new Error('Failed to start session');
+            updateConnectionStatus(false, 'Connection failed');
+            throw new Error(startData.error || 'Failed to start session');
         }
     } catch (error) {
         console.error('Error starting demo:', error);
@@ -327,15 +348,23 @@ async function startDemo() {
 
 async function stopDemo() {
     try {
+        updateConnectionStatus(false, 'Stopping...');
+        
         const response = await fetch('/api/control/stop', { method: 'POST' });
         const data = await response.json();
 
         if (data.success) {
             updateDemoControls(false);
+            updateConnectionStatus(false, 'Stopped');
             stopStatsUpdates();
+            resetStats();
+            console.log('Demo stopped successfully');
+        } else {
+            console.error('Failed to stop demo:', data.error);
         }
     } catch (error) {
         console.error('Error stopping demo:', error);
+        updateConnectionStatus(false, 'Error stopping');
     }
 }
 
@@ -432,6 +461,15 @@ async function updateStats() {
         const stats = await response.json();
         console.log('Stats received:', stats); // Debug log
 
+        // Update connection status based on camera status
+        if (stats.is_running && stats.camera_active) {
+            updateConnectionStatus(true);
+        } else if (stats.is_running && !stats.camera_active) {
+            updateConnectionStatus(false, 'Camera unavailable');
+        } else {
+            updateConnectionStatus(false);
+        }
+
         // Update basic stats display
         const fpsValue = document.getElementById('fps-value');
         const peopleValue = document.getElementById('people-value');
@@ -496,21 +534,8 @@ async function updateStats() {
             // Update surveillance info
             const serviceInfoDiv = document.getElementById('service-info');
             if (serviceInfoDiv) {
-                serviceInfoDiv.innerHTML = `
-                    <div class="text-sm space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Active Tracking:</span>
-                            <span class="font-semibold text-blue-600">${stats.detected_persons || 0} people</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Total Alerts:</span>
-                            <span class="font-semibold text-red-600">${stats.alerts_count || 0}</span>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-2">
-                            Monitoring for restricted zone entries and unusual behavior
-                        </div>
-                    </div>
-                `;
+                const surveillanceInfo = getSurveillanceInfo(selectedService, stats);
+                serviceInfoDiv.innerHTML = surveillanceInfo;
             }
         }
 
@@ -597,6 +622,85 @@ function getExerciseInfo(exercise, stats) {
     `;
 }
 
+// Helper function for surveillance-specific info
+function getSurveillanceInfo(service, stats) {
+    const templates = {
+        'zone_detection': `
+            <div class="text-sm space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Active Tracking:</span>
+                    <span class="font-semibold text-blue-600">${stats.detected_persons || 0} people</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Zone Violations:</span>
+                    <span class="font-semibold text-red-600">${stats.alert_counts?.restricted_zone_entry || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Restricted Zones:</span>
+                    <span class="font-semibold text-yellow-600">${stats.restricted_zones || 0}</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                    Monitoring restricted areas for unauthorized access
+                </div>
+            </div>
+        `,
+        'rapid_movement': `
+            <div class="text-sm space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">People Tracked:</span>
+                    <span class="font-semibold text-blue-600">${stats.detected_persons || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Movement Alerts:</span>
+                    <span class="font-semibold text-red-600">${stats.alert_counts?.rapid_movement || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Total People:</span>
+                    <span class="font-semibold text-green-600">${stats.total_people_detected || 0}</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                    Detecting unusually rapid movements and running
+                </div>
+            </div>
+        `,
+        'fall_detection': `
+            <div class="text-sm space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">People Monitored:</span>
+                    <span class="font-semibold text-blue-600">${stats.detected_persons || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Fall Alerts:</span>
+                    <span class="font-semibold text-red-600">${stats.alert_counts?.fall_detected || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">All Alerts:</span>
+                    <span class="font-semibold text-yellow-600">${stats.alerts_count || 0}</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                    Monitoring for falls and emergency situations
+                </div>
+            </div>
+        `
+    };
+
+    return templates[service] || `
+        <div class="text-sm space-y-1">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Active Tracking:</span>
+                <span class="font-semibold text-blue-600">${stats.detected_persons || 0} people</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Total Alerts:</span>
+                <span class="font-semibold text-red-600">${stats.alerts_count || 0}</span>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">
+                General surveillance monitoring active
+            </div>
+        </div>
+    `;
+}
+
 // Enhanced stats management for multi-step UI
 function startStatsUpdates() {
     if (statsInterval) clearInterval(statsInterval);
@@ -656,7 +760,7 @@ async function loadLogs() {
     }
 }
 
-function updateConnectionStatus(connected) {
+function updateConnectionStatus(connected, customMessage = null) {
     isConnected = connected;
     const statusIndicator = document.getElementById('status-indicator');
     if (!statusIndicator) return;
@@ -666,22 +770,37 @@ function updateConnectionStatus(connected) {
 
     if (indicator && text) {
         if (connected) {
-            indicator.classList.remove('bg-red-400');
+            indicator.classList.remove('bg-red-400', 'bg-yellow-400');
             indicator.classList.add('bg-green-400');
-            text.textContent = 'Online';
+            text.textContent = customMessage || 'Online';
         } else {
             indicator.classList.remove('bg-green-400');
-            indicator.classList.add('bg-red-400');
-            text.textContent = 'Offline';
+            if (customMessage && customMessage.includes('Starting')) {
+                indicator.classList.add('bg-yellow-400');
+                indicator.classList.remove('bg-red-400');
+            } else {
+                indicator.classList.add('bg-red-400');
+                indicator.classList.remove('bg-yellow-400');
+            }
+            text.textContent = customMessage || 'Offline';
         }
     }
 
     // Update session status
     const sessionStatus = document.getElementById('session-status');
     if (sessionStatus) {
-        sessionStatus.innerHTML = connected ?
-            '<span class="flex items-center"><div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>Online</span>' :
-            '<span class="flex items-center"><div class="w-2 h-2 bg-red-400 rounded-full mr-2"></div>Offline</span>';
+        let statusColor = 'bg-red-400';
+        let statusText = customMessage || 'Offline';
+        
+        if (connected) {
+            statusColor = 'bg-green-400';
+            statusText = customMessage || 'Online';
+        } else if (customMessage && customMessage.includes('Starting')) {
+            statusColor = 'bg-yellow-400';
+            statusText = customMessage;
+        }
+        
+        sessionStatus.innerHTML = `<span class="flex items-center"><div class="w-2 h-2 ${statusColor} rounded-full mr-2 animate-pulse"></div>${statusText}</span>`;
     }
 }
 

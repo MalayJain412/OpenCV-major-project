@@ -1,4 +1,0 @@
-timestamp,person_id,rep_number,knee_angle,squat_depth_quality,exercise_state,session_id
-2025-11-04T03:14:09.718979,0,1,19.66,too_deep,standing,20251104_031121
-2025-11-04T03:14:22.741605,0,2,97.65,good,standing,20251104_031121
-2025-11-04T03:14:27.216254,0,3,72.91,good,standing,20251104_031121

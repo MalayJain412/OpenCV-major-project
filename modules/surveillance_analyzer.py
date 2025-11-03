@@ -187,6 +187,7 @@ class SurveillanceAnalyzer:
     """Main surveillance analysis system."""
     
     def __init__(self, alert_system: Optional[AlertSystem] = None):
+        print("[DEBUG] Initializing SurveillanceAnalyzer...")
         self.drawing_utils = DrawingUtils()
         self.movement_analyzer = MovementAnalyzer()
         
@@ -202,7 +203,7 @@ class SurveillanceAnalyzer:
         self.alerts: List[Alert] = []
         self.max_alerts = 100  # Keep only recent alerts
         
-        # Settings
+        # Settings (default to all enabled)
         self.person_detection_enabled = True
         self.zone_detection_enabled = True
         self.movement_analysis_enabled = True
@@ -214,6 +215,7 @@ class SurveillanceAnalyzer:
         
         # Initialize with zones from configuration file
         self.load_zones_from_config()
+        print(f"[DEBUG] SurveillanceAnalyzer initialized with {len(self.restricted_zones)} zones")
     
     def load_zones_from_config(self, config_path: str = "utils/zone_config.json"):
         """Load surveillance zones from configuration file."""
@@ -261,6 +263,7 @@ class SurveillanceAnalyzer:
         # Process detected people
         if pose_results.pose_landmarks:
             self.update_person_tracking(pose_results.pose_landmarks, current_time, frame.shape)
+            print(f"[DEBUG] Processing person with {len(self.person_tracks)} active tracks")
         
         # Update active person count
         active_people = len([track for track in self.person_tracks.values() 
@@ -396,10 +399,12 @@ class SurveillanceAnalyzer:
         if self.movement_analysis_enabled:
             speed_alert = self.movement_analyzer.analyze_speed(track)
             if speed_alert:
+                print(f"[DEBUG] Rapid movement alert generated for person {track.person_id}")
                 self.add_alert(speed_alert)
             
             loitering_alert = self.movement_analyzer.analyze_loitering(track)
             if loitering_alert:
+                print(f"[DEBUG] Loitering alert generated for person {track.person_id}")
                 self.add_alert(loitering_alert)
         
         # Zone detection
@@ -438,6 +443,7 @@ class SurveillanceAnalyzer:
                         confidence=min(0.9, angle / 90),
                         description=f"Possible fall detected (angle: {angle:.1f}°)"
                     )
+                    self.add_alert(alert)
                     self.add_alert(alert)
     
     def add_alert(self, alert: Alert):
@@ -543,12 +549,33 @@ class SurveillanceAnalyzer:
         active_people = len([track for track in self.person_tracks.values() 
                            if current_time - track.last_seen < 2.0])
         
+        # Get recent alerts by type
+        recent_alerts = [alert for alert in self.alerts 
+                        if current_time - alert.timestamp < 60.0 and not alert.resolved]
+        
+        alert_counts = {}
+        for alert_type in AlertType:
+            alert_counts[alert_type.value] = len([a for a in recent_alerts 
+                                                if a.alert_type == alert_type])
+        
+        # Determine active service
+        active_service = 'none'
+        if self.zone_detection_enabled:
+            active_service = 'zone_detection'
+        elif self.movement_analysis_enabled:
+            active_service = 'rapid_movement'
+        elif self.fall_detection_enabled:
+            active_service = 'fall_detection'
+        
         return {
             'active_people': active_people,
             'total_people_detected': self.total_people_detected,
             'active_alerts': self.active_alerts,
             'total_alerts': len(self.alerts),
+            'recent_alerts': len(recent_alerts),
+            'alert_counts': alert_counts,
             'restricted_zones': len(self.restricted_zones),
+            'active_service': active_service,
             'detection_modes': {
                 'person_detection': self.person_detection_enabled,
                 'zone_detection': self.zone_detection_enabled,
