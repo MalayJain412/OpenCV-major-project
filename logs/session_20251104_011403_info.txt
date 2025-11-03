@@ -1,0 +1,8 @@
+Session Start: 2025-11-04T01:14:03.409051
+Session ID: 20251104_011403
+==================================================
+Configuration:
+  exercise_type: squat
+  auto_detect: True
+==================================================
+Session Log:
