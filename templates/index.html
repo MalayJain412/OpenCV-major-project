@@ -89,6 +89,18 @@
                         <div id="video-overlay" class="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded">
                             <span id="current-mode" class="font-semibold">FITNESS MODE</span>
                         </div>
+
+                        <!-- Mode-specific HTML overlay (lightweight, updated from stats) -->
+                        <div id="mode-overlay" class="absolute bottom-4 left-4 text-white">
+                            <!-- Fitness overlay -->
+                            <div id="fitness-overlay" class="hidden bg-black bg-opacity-40 px-3 py-2 rounded">
+                                <div id="fitness-person-info" class="text-sm"></div>
+                            </div>
+                            <!-- Surveillance overlay -->
+                            <div id="surveillance-overlay" class="hidden bg-black bg-opacity-40 px-3 py-2 rounded max-w-md">
+                                <div id="surveillance-alerts" class="text-sm"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -446,6 +458,45 @@
                 }
                 
                 updateConnectionStatus(true);
+                // Update mode-specific lightweight overlays
+                const fitnessOverlay = document.getElementById('fitness-overlay');
+                const surveillanceOverlay = document.getElementById('surveillance-overlay');
+
+                if (stats.current_mode === 'fitness') {
+                    // Show fitness overlay
+                    fitnessOverlay.classList.remove('hidden');
+                    surveillanceOverlay.classList.add('hidden');
+
+                    const personInfo = document.getElementById('fitness-person-info');
+                    const reps = stats.session_reps || 0;
+                    const people = stats.active_people || stats.detected_persons || 0;
+                    personInfo.innerHTML = `<strong>Reps:</strong> ${reps} &nbsp; <strong>People:</strong> ${people}`;
+                } else if (stats.current_mode === 'surveillance') {
+                    // Show surveillance overlay
+                    surveillanceOverlay.classList.remove('hidden');
+                    fitnessOverlay.classList.add('hidden');
+
+                    // Fetch a few recent alerts to show
+                    try {
+                        const aresp = await fetch('/api/surveillance/alerts');
+                        const ajson = await aresp.json();
+                        const alertDiv = document.getElementById('surveillance-alerts');
+                        if (ajson && ajson.alerts && ajson.alerts.length) {
+                            alertDiv.innerHTML = ajson.alerts.slice(0,3).map(a => {
+                                const t = a.timestamp || a.time || '';
+                                return `<div><strong>${a.alert_type}</strong> (${t}) - ${a.description || ''}</div>`;
+                            }).join('');
+                        } else {
+                            alertDiv.innerHTML = '<div>No recent alerts</div>';
+                        }
+                    } catch (err) {
+                        console.warn('Could not fetch alerts for overlay', err);
+                    }
+                } else {
+                    // Hide both overlays for other modes
+                    fitnessOverlay.classList.add('hidden');
+                    surveillanceOverlay.classList.add('hidden');
+                }
             } catch (error) {
                 updateConnectionStatus(false);
             }

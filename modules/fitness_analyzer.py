@@ -513,50 +513,19 @@ class FitnessAnalyzer:
         x = int(nose.x * frame.shape[1])
         y = int(nose.y * frame.shape[0])
         
-        # Person ID and exercise info
-        cv2.putText(frame, f"Person {person_id}", (x - 50, y - 60),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        
-        # Exercise type
-        cv2.putText(frame, f"{exercise_state.exercise_type.value.title()}", (x - 50, y - 40),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-        
-        # Rep count
-        cv2.putText(frame, f"Reps: {exercise_state.rep_count}", (x - 50, y - 20),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        
-        # Form score
-        form_color = (0, 255, 0) if exercise_state.form_score > 80 else (0, 165, 255) if exercise_state.form_score > 60 else (0, 0, 255)
-        cv2.putText(frame, f"Form: {exercise_state.form_score:.0f}%", (x - 50, y),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, form_color, 2)
-        
-        # Phase indicator
-        phase_color = (0, 255, 0) if exercise_state.phase in ["up", "top"] else (255, 0, 0)
-        cv2.putText(frame, f"Phase: {exercise_state.phase}", (x - 50, y + 20),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, phase_color, 2)
+        # Do not draw textual exercise overlays on the frame. Web UI displays these.
+        # Optionally draw non-text visual cues (e.g., a small colored marker at the nose)
+        try:
+            cv2.circle(frame, (x, y), 6, (245, 117, 66), -1)
+        except Exception:
+            pass
     
     def draw_session_info(self, frame):
         """Draw session information on the frame."""
         session_duration = time.time() - self.session_start_time
         
-        # Session info panel
-        info_y = 100
-        cv2.putText(frame, f"Exercise: {self.current_exercise.value.title()}", (10, info_y),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        
-        cv2.putText(frame, f"Total Reps: {self.total_reps}", (10, info_y + 30),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-        
-        cv2.putText(frame, f"Duration: {int(session_duration//60):02d}:{int(session_duration%60):02d}", 
-                   (10, info_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
-        
-        cv2.putText(frame, f"Calories: {self.calories_estimate:.1f}", (10, info_y + 90),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
-        
-        # Auto-detect indicator
-        if self.auto_detect:
-            cv2.putText(frame, "AUTO-DETECT ON", (10, info_y + 120),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+        # Do not draw session textual info on the frame; web UI shows session stats.
+        # Draw minimal visual cues if needed (e.g., small dots) - none by default.
     
     def update_calories_estimate(self):
         """Update calories burned estimate."""

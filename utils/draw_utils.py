@@ -11,6 +11,9 @@ import numpy as np
 
 class DrawingUtils:
     """Utility class for drawing overlays and text on frames."""
+    # Master switch to enable/disable drawing text directly on frames.
+    # Set to False to keep camera preview text-free and move textual UI to the web UI.
+    FRAME_TEXT_ENABLED = False
     
     # Color constants (BGR format)
     GREEN = (0, 255, 0)
@@ -40,8 +43,12 @@ class DrawingUtils:
             background (bool): Whether to draw background rectangle
             background_color (tuple): Background color in BGR
         """
+        # If frame text is globally disabled, do nothing.
+        if not DrawingUtils.FRAME_TEXT_ENABLED:
+            return
+
         font = cv2.FONT_HERSHEY_SIMPLEX
-        
+
         if background:
             # Get text size for background rectangle
             (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
@@ -49,11 +56,11 @@ class DrawingUtils:
             # Draw background rectangle
             top_left = (position[0] - 5, position[1] - text_height - 5)
             bottom_right = (position[0] + text_width + 5, position[1] + baseline + 5)
-            cv2.rectangle(frame, top_left, bottom_right, background_color, -1)
-        
+        cv2.rectangle(frame, top_left, bottom_right, background_color, -1)
+            
         # Draw text
         cv2.putText(frame, text, position, font, font_scale, color, thickness, cv2.LINE_AA)
-    
+
     @staticmethod
     def draw_fps(frame, fps, position=None):
         """
@@ -124,17 +131,17 @@ class DrawingUtils:
         # Draw rectangle
         cv2.rectangle(frame, (x, y), (x + w, y + h), color, thickness)
         
-        # Draw person ID label
+        # Draw person ID label (only if frame text is enabled)
         label = f"Person {person_id}"
-        label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
-        
-        # Background for label
-        cv2.rectangle(frame, (x, y - label_size[1] - 10), 
-                     (x + label_size[0] + 10, y), color, -1)
-        
-        # Label text
-        cv2.putText(frame, label, (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 
-                   0.6, DrawingUtils.WHITE, 2, cv2.LINE_AA)
+        if DrawingUtils.FRAME_TEXT_ENABLED:
+            label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
+
+            # Background for label
+            cv2.rectangle(frame, (x, y - label_size[1] - 10),
+                         (x + label_size[0] + 10, y), color, -1)
+
+            # Label text using draw_text (respects FRAME_TEXT_ENABLED)
+            DrawingUtils.draw_text(frame, label, (x + 5, y - 5), font_scale=0.6, color=DrawingUtils.WHITE, thickness=2)
     
     @staticmethod
     def draw_squat_feedback(frame, depth_quality, position=(10, 150)):
@@ -257,3 +264,194 @@ class DrawingUtils:
             y_pos = y_start + i * line_height
             DrawingUtils.draw_text(frame, info, (10, y_pos), font_scale=0.5,
                                   color=DrawingUtils.LIGHT_GRAY, background=True)
+
+    @staticmethod
+    def draw_transparent_panel(frame, top_left, bottom_right, color=(0, 0, 0), alpha=0.6):
+        """Draw a semi-transparent rectangular panel on the frame.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            top_left (tuple): (x, y) top-left corner
+            bottom_right (tuple): (x, y) bottom-right corner
+            color (tuple): BGR color for panel
+            alpha (float): Opacity (0.0 - 1.0)
+        """
+        overlay = frame.copy()
+        cv2.rectangle(overlay, top_left, bottom_right, color, -1)
+        cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+
+    @staticmethod
+    def draw_mode_header(frame, mode_text, color=(0, 0, 0), text_color=(255, 255, 255)):
+        """Draw a prominent mode header at the top of the frame.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            mode_text (str): Header text (e.g., "FITNESS MODE")
+            color (tuple): Background color for header (BGR)
+            text_color (tuple): Text color (BGR)
+        """
+        height, width = frame.shape[:2]
+        header_h = 48
+        DrawingUtils.draw_transparent_panel(frame, (0, 0), (width, header_h), color=color, alpha=0.55)
+        DrawingUtils.draw_text(frame, mode_text, (12, 34), font_scale=1.0, color=text_color, thickness=2)
+
+    @staticmethod
+    def draw_fitness_ui(frame, stats: dict, person_info: dict = None):
+        """Draw fitness-specific UI overlays: session panel, reps, and small info.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            stats (dict): Stats dictionary (fps, session_reps, etc.)
+            person_info (dict, optional): Per-person info {id, reps, state, angle}
+        """
+        # Header
+        DrawingUtils.draw_mode_header(frame, "FITNESS MODE", color=(0, 128, 0), text_color=DrawingUtils.WHITE)
+
+        # Session panel (top-right)
+        height, width = frame.shape[:2]
+        panel_w = 260
+        panel_h = 100
+        top_left = (width - panel_w - 10, 10)
+        bottom_right = (width - 10, 10 + panel_h)
+        DrawingUtils.draw_transparent_panel(frame, top_left, bottom_right, color=(0, 0, 0), alpha=0.45)
+
+        # Populate session panel
+        x = top_left[0] + 10
+        y = top_left[1] + 24
+        DrawingUtils.draw_text(frame, f"FPS: {stats.get('fps', 0):.0f}", (x, y), font_scale=0.6, color=DrawingUtils.LIGHT_GRAY, background=False)
+        DrawingUtils.draw_text(frame, f"Reps: {stats.get('session_reps', 0)}", (x, y + 22), font_scale=0.7, color=DrawingUtils.WHITE, background=False)
+        DrawingUtils.draw_text(frame, f"People: {stats.get('active_people', stats.get('detected_persons', 0))}", (x, y + 44), font_scale=0.6, color=DrawingUtils.LIGHT_GRAY, background=False)
+
+        # Per-person info (left side)
+        if person_info:
+            DrawingUtils.draw_transparent_panel(frame, (10, 60), (260, 160), color=(0, 0, 0), alpha=0.45)
+            pid = person_info.get('id', 0)
+            DrawingUtils.draw_person_info(frame, pid, person_info.get('reps', 0), person_info.get('state', 'unknown'), angle=person_info.get('angle', None), position=(20, 80))
+
+    @staticmethod
+    def draw_surveillance_ui(frame, stats: dict, alerts: list = None, zones: list = None):
+        """Draw surveillance-specific UI overlays: alert panel, zone info, and counters.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            stats (dict): Stats dictionary
+            alerts (list, optional): Recent alert dicts
+            zones (list, optional): Configured zones
+        """
+        # Header
+        DrawingUtils.draw_mode_header(frame, "SURVEILLANCE MODE", color=(0, 0, 128), text_color=DrawingUtils.WHITE)
+
+        # Alerts panel (top-left)
+        height, width = frame.shape[:2]
+        panel_w = 320
+        panel_h = 140
+        top_left = (10, 10)
+        bottom_right = (10 + panel_w, 10 + panel_h)
+        DrawingUtils.draw_transparent_panel(frame, top_left, bottom_right, color=(0, 0, 0), alpha=0.5)
+
+        # Populate alerts panel
+        x = top_left[0] + 10
+        y = top_left[1] + 26
+        DrawingUtils.draw_text(frame, f"Active People: {stats.get('detected_persons', 0)}", (x, y), font_scale=0.6, color=DrawingUtils.WHITE, background=False)
+        DrawingUtils.draw_text(frame, f"Active Alerts: {stats.get('alerts_count', 0)}", (x, y + 22), font_scale=0.7, color=DrawingUtils.ORANGE, background=False)
+        DrawingUtils.draw_text(frame, f"Zones: {len(zones) if zones else 0}", (x, y + 44), font_scale=0.6, color=DrawingUtils.LIGHT_GRAY, background=False)
+
+        # Recent alert messages (bottom)
+        if alerts:
+            max_show = 3
+            start_y = top_left[1] + panel_h + 8
+            DrawingUtils.draw_transparent_panel(frame, (10, start_y), (width - 10, start_y + 80), color=(0, 0, 0), alpha=0.35)
+            for i, alert in enumerate(alerts[:max_show]):
+                text = f"{alert.get('timestamp', '')} - {alert.get('alert_type', '')}: {alert.get('description','') }"
+                DrawingUtils.draw_text(frame, text, (20, start_y + 20 + i * 20), font_scale=0.5, color=DrawingUtils.WHITE, background=False)
+
+    @staticmethod
+    def draw_recent_alerts_bar(frame, alerts: list):
+        """Draw a wide semi-transparent bar in the middle-top to show recent alerts clearly.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            alerts (list): List of alert dicts with 'timestamp' and 'description' or 'alert_type'
+        """
+        if not alerts:
+            return
+
+        height, width = frame.shape[:2]
+        bar_h = 80
+        top = 60
+        left = int(width * 0.05)
+        right = int(width * 0.95)
+
+        # Draw translucent background
+        DrawingUtils.draw_transparent_panel(frame, (left, top), (right, top + bar_h), color=(0, 0, 0), alpha=0.45)
+
+        # Compose a single long line (truncate if too long)
+        texts = []
+        for a in alerts[:4]:
+            t = a.get('timestamp', '')
+            at = a.get('alert_type', '')
+            desc = a.get('description', '')
+            texts.append(f"{t} - {at}: {desc}")
+
+        display_text = '   |   '.join(texts)
+        # Truncate to reasonable length
+        max_chars = 220
+        if len(display_text) > max_chars:
+            display_text = display_text[:max_chars-3] + '...'
+
+        DrawingUtils.draw_text(frame, display_text, (left + 12, top + 40), font_scale=0.6, color=DrawingUtils.WHITE, thickness=2, background=False)
+
+    @staticmethod
+    def draw_large_zone_label(frame, text, position=('bottom_right'), width_frac=0.32, height=80, bg_color=(0,0,255)):
+        """Draw a large colored banner (e.g., red) at bottom-right for zone labels or large alerts.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            text (str): Label text
+            position (str): 'bottom_right' or 'bottom_left'
+            width_frac (float): Fraction of frame width for banner width
+            height (int): Banner height in pixels
+            bg_color (tuple): BGR color for banner
+        """
+        h, w = frame.shape[:2]
+        banner_w = int(w * width_frac)
+        banner_h = height
+
+        if position == 'bottom_right':
+            tl = (w - banner_w - 10, h - banner_h - 10)
+            br = (w - 10, h - 10)
+            text_pos = (tl[0] + int(banner_w*0.12), tl[1] + int(banner_h*0.62))
+        else:
+            tl = (10, h - banner_h - 10)
+            br = (10 + banner_w, h - 10)
+            text_pos = (tl[0] + int(banner_w*0.12), tl[1] + int(banner_h*0.62))
+
+        # Solid background for high visibility
+        cv2.rectangle(frame, tl, br, bg_color, -1)
+
+        # Draw label text large and bold
+        DrawingUtils.draw_text(frame, text, text_pos, font_scale=1.1, color=DrawingUtils.WHITE, thickness=3)
+
+    @staticmethod
+    def draw_small_stats_box(frame, stats: dict):
+        """Draw a compact stats box (red) in the top-left showing counts with strong colors.
+
+        Args:
+            frame (numpy.ndarray): Frame to draw on
+            stats (dict): Stats dictionary
+        """
+        height, width = frame.shape[:2]
+        wbox = 220
+        hbox = 90
+        tl = (10, 10)
+        br = (10 + wbox, 10 + hbox)
+
+        # Red panel
+        DrawingUtils.draw_transparent_panel(frame, tl, br, color=(0,0,255), alpha=0.85)
+
+        x = tl[0] + 12
+        y = tl[1] + 24
+        # Yellow text for counts
+        DrawingUtils.draw_text(frame, f"Active People: {stats.get('detected_persons', 0)}", (x, y), font_scale=0.6, color=DrawingUtils.YELLOW, thickness=2, background=False)
+        DrawingUtils.draw_text(frame, f"Total Detected: {stats.get('detected_persons', 0)}", (x, y+22), font_scale=0.5, color=DrawingUtils.WHITE, background=False)
+        DrawingUtils.draw_text(frame, f"Active Alerts: {stats.get('alerts_count', 0)}", (x, y+44), font_scale=0.6, color=DrawingUtils.ORANGE, background=False)

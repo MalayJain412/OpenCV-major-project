@@ -228,9 +228,9 @@ class VisionTrackApp:
         else:
             self.stats['detected_persons'] = 0
         
-        # Draw mode indicator
-        cv2.putText(processed_frame, "FITNESS MODE", (10, 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Do not draw text overlays on-frame. UI will display stats and alerts.
+        # Keep only pose landmarks or non-textual visuals.
+        # (All textual UI moved to the web interface.)
         
         return processed_frame
     
@@ -244,11 +244,9 @@ class VisionTrackApp:
             if pose_results.pose_landmarks:
                 self.pose_detector.draw_landmarks(processed_frame, pose_results.pose_landmarks)
                 self.stats['detected_persons'] = 1
-        
-        # Draw mode indicator
-        cv2.putText(processed_frame, "SURVEILLANCE MODE", (10, 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        
+        # Do not draw text overlays on-frame for surveillance. The analyzer will draw
+        # non-textual markers (zones, person circles). All textual UI moves to web UI.
+
         return processed_frame
     
     def process_gaming_mode(self, frame, pose_results):
@@ -260,12 +258,7 @@ class VisionTrackApp:
         cv2.rectangle(overlay, (50, 100), (590, 200), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.7, processed_frame, 0.3, 0, processed_frame)
         
-        cv2.putText(processed_frame, "GAMING MODE", (10, 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-        cv2.putText(processed_frame, "COMING SOON!", (150, 140), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 3)
-        cv2.putText(processed_frame, "Interactive pose-based games", (120, 180), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2)
+    # Do not draw textual gaming overlays on-frame. Keep only visual box.
         
         return processed_frame
 

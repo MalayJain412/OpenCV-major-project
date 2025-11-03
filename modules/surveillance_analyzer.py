@@ -83,8 +83,7 @@ class RestrictedZone:
             # Draw zone label
             center_x = int(np.mean(self.points[:, 0]))
             center_y = int(np.mean(self.points[:, 1]))
-            cv2.putText(frame, self.name, (center_x - 30, center_y),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            # Do not draw textual zone labels on the frame (UI displays zone names)
 
 
 class MovementAnalyzer:
@@ -493,17 +492,13 @@ class SurveillanceAnalyzer:
             cv2.line(frame, (prev_pos[0], prev_pos[1]), (curr_pos[0], curr_pos[1]), 
                     (255, 255, 0), 2)
         
-        # Draw current position
+        # Draw current position (no text)
         current_pos = track.positions[-1]
         cv2.circle(frame, (current_pos[0], current_pos[1]), 10, (0, 255, 0), -1)
-        
-        # Draw person info
-        info_text = f"ID:{track.person_id} Speed:{track.speed:.1f}"
-        cv2.putText(frame, info_text, (current_pos[0] - 30, current_pos[1] - 20),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        
-        # Alert indicator if person has alerts
+
+        # Alert indicator if person has alerts (visual only)
         if track.alert_count > 0:
+            # Draw a red ring to indicate alert(s)
             cv2.circle(frame, (current_pos[0], current_pos[1]), 15, (0, 0, 255), 3)
     
     def draw_alerts(self, frame: np.ndarray, current_time: float):
@@ -512,29 +507,35 @@ class SurveillanceAnalyzer:
                         if current_time - alert.timestamp < 10.0 and not alert.resolved]
         
         y_offset = 400
-        for alert in recent_alerts[-5:]:  # Show last 5 alerts
-            alert_text = f"ALERT: {alert.description}"
-            cv2.putText(frame, alert_text, (10, y_offset), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            y_offset += 25
+        # Do not draw textual alert lines on the frame. Keep visual markers only.
+        # Optionally draw small markers at alert locations (if coordinates available).
+        for alert in recent_alerts[-5:]:
+            try:
+                x, y = alert.location
+                cv2.circle(frame, (x, y), 8, (0, 0, 255), -1)
+            except Exception:
+                # If no coordinates, skip drawing
+                continue
     
     def draw_info_panel(self, frame: np.ndarray, current_time: float):
         """Draw surveillance information panel."""
         active_people = len([track for track in self.person_tracks.values() 
                            if current_time - track.last_seen < 2.0])
         
-        info_y = 60
-        cv2.putText(frame, f"Active People: {active_people}", (10, info_y),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        
-        cv2.putText(frame, f"Total Detected: {self.total_people_detected}", (10, info_y + 30),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        
-        cv2.putText(frame, f"Active Alerts: {self.active_alerts}", (10, info_y + 60),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
-        
-        cv2.putText(frame, f"Zones: {len(self.restricted_zones)}", (10, info_y + 90),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        # Remove textual info panel from on-frame display. The web UI renders these values.
+        # As a minimal visual cue, draw small colored dots for counts (no text):
+        try:
+            # Active people dot (green)
+            if active_people > 0:
+                cv2.circle(frame, (20, 20), 6, (0, 255, 0), -1)
+            # Active alerts dot (orange)
+            if self.active_alerts > 0:
+                cv2.circle(frame, (20, 44), 6, (0, 165, 255), -1)
+            # Zones dot (blue)
+            if len(self.restricted_zones) > 0:
+                cv2.circle(frame, (20, 68), 6, (255, 0, 0), -1)
+        except Exception:
+            pass
     
     def get_surveillance_summary(self) -> Dict:
         """Get surveillance session summary."""
