@@ -640,5 +640,5 @@ if __name__ == '__main__':
     
     # Run the app
     print("Starting VisionTrack Web Application...")
-    print("Open your browser and go to: http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
+    print("Open your browser and go to: http://localhost:5003")
+    app.run(debug=True, host='0.0.0.0', port=5003, threaded=True)
