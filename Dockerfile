@@ -1,8 +1,13 @@
-# Use Python 3.12 bullseye slim base image for better package availability
-FROM python:3.12-bullseye-slim
+# Use Python 3.12 slim base image for compatibility
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
+
+# Fix apt sources to use bookworm instead of trixie
+RUN echo "deb http://deb.debian.org/debian bookworm main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list
 
 # Install system dependencies required for OpenCV and MediaPipe
 RUN apt-get update && apt-get install -y \
