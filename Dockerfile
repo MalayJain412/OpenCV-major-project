@@ -1,5 +1,5 @@
-# Use Python 3.12 slim base image for compatibility
-FROM python:3.12-slim
+# Use Python 3.12 bullseye slim base image for better package availability
+FROM python:3.12-bullseye-slim
 
 # Set working directory
 WORKDIR /app
